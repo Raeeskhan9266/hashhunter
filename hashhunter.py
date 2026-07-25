@@ -25,6 +25,16 @@ else:
     print("Unknown hash type (length doesn't match common algorithms)")
 
 if hash_type:
+    # Ask if a salt is being used
+    use_salt = input("\nIs this hash salted? (y/n): ").strip().lower()
+
+    salt = ""
+    salt_position = "none"
+
+    if use_salt == "y":
+        salt = input("Enter the salt value: ").strip()
+        salt_position = input("Is the salt added before or after the password? (before/after): ").strip().lower()
+
     words = None
     while words is None:
         wordlist_file = input("\nEnter wordlist filename to attempt cracking (e.g. passwords.txt): ")
@@ -39,21 +49,31 @@ if hash_type:
     found = False
 
     for word in words:
-        word_bytes = word.encode()
+        # Build the candidate string based on salt position
+        if salt_position == "before":
+            candidate = salt + word
+        elif salt_position == "after":
+            candidate = word + salt
+        else:
+            candidate = word
+
+        candidate_bytes = candidate.encode()
 
         if hash_type == "md5":
-            computed_hash = hashlib.md5(word_bytes).hexdigest()
+            computed_hash = hashlib.md5(candidate_bytes).hexdigest()
         elif hash_type == "sha1":
-            computed_hash = hashlib.sha1(word_bytes).hexdigest()
+            computed_hash = hashlib.sha1(candidate_bytes).hexdigest()
         elif hash_type == "sha256":
-            computed_hash = hashlib.sha256(word_bytes).hexdigest()
+            computed_hash = hashlib.sha256(candidate_bytes).hexdigest()
         elif hash_type == "sha512":
-            computed_hash = hashlib.sha512(word_bytes).hexdigest()
+            computed_hash = hashlib.sha512(candidate_bytes).hexdigest()
 
-        print(f"Trying: {word} -> {computed_hash}")
+        print(f"Trying: {word} (candidate: {candidate}) -> {computed_hash}")
 
         if computed_hash == user_hash:
             print(f"\n[CRACKED] The password is: {word}")
+            if salt:
+                print(f"(Salt used: {salt}, position: {salt_position})")
             found = True
             break
 
